@@ -44,10 +44,5 @@ const authorize = (...roles) => {
     next();
   };
 };
-// @route   GET /api/auth/me
-// @access  Private
-const getMe = async (req, res) => {
-  res.status(200).json({ user: userResponse(req.user) });
-};
 
-module.exports = { registerUser, loginUser, getMe };
+module.exports = { protect, authorize };

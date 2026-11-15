@@ -75,6 +75,9 @@ const loginUser = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
+}// @route   GET /api/auth/me
+// @access  Private
+const getMe = async (req, res) => {
+  res.status(200).json({ user: userResponse(req.user) });
 };
-
-module.exports = { registerUser, loginUser };
+module.exports = { registerUser, loginUser, getMe };

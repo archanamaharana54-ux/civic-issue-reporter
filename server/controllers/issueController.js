@@ -1,5 +1,7 @@
 const Issue = require("../models/Issue");
 
+const DUPLICATE_RADIUS_METERS = 50;
+
 // @route   POST /api/issues
 // @access  Private (citizen)
 const createIssue = async (req, res) => {
@@ -42,7 +44,47 @@ const createIssue = async (req, res) => {
       return res.status(400).json({ message: "Invalid coordinates" });
     }
 
-    // Sirf allowed fields. status/priority/reportedBy client se nahi lete
+    // 1. Duplicate dhoondho: 50 m ke andar, same category, unresolved
+    const nearby = await Issue.findOne({
+      category,
+      status: { $ne: "resolved" },
+      location: {
+        $near: {
+          $geometry: { type: "Point", coordinates: [lng, lat] },
+          $maxDistance: DUPLICATE_RADIUS_METERS,
+        },
+      },
+    });
+
+    if (nearby) {
+      // 2. Ye user pehle hi report kar chuka hai
+      const alreadyReported = nearby.reporters.some(
+        (id) => id.toString() === req.user._id.toString()
+      );
+      if (alreadyReported) {
+        return res.status(409).json({
+          message: "You have already reported this issue",
+          issue: nearby,
+        });
+      }
+
+      // 3. Naya reporter: count badhao, reporter add karo
+      const update = {
+        $inc: { reportCount: 1 },
+        $addToSet: { reporters: req.user._id },
+      };
+      if (nearby.reportCount + 1 >= 5) {
+        update.$set = { priority: "high" };
+      }
+
+      const merged = await Issue.findByIdAndUpdate(nearby._id, update, {
+        new: true,
+      });
+
+      return res.status(200).json({ merged: true, issue: merged });
+    }
+
+    // 4. Duplicate nahi mila: naya issue banao
     const issue = await Issue.create({
       title,
       description,
@@ -54,7 +96,7 @@ const createIssue = async (req, res) => {
       reportedBy: req.user._id,
     });
 
-    res.status(201).json({ issue });
+    res.status(201).json({ merged: false, issue });
   } catch (error) {
     if (error.name === "ValidationError") {
       return res.status(400).json({ message: error.message });

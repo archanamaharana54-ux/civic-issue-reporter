@@ -2,6 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
+const authRoutes = require("./routes/authRoutes");
+const issueRoutes = require("./routes/issueRoutes");
 
 connectDB();
 
@@ -21,9 +23,10 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "OK", time: new Date() });
 });
 
+app.use("/api/auth", authRoutes);
+app.use("/api/issues", issueRoutes);
+
 // Server start
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-const authRoutes = require("./routes/authRoutes");
-app.use("/api/auth", authRoutes);

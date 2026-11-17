@@ -4,8 +4,11 @@ const cors = require("cors");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const issueRoutes = require("./routes/issueRoutes");
+const statsRoutes = require("./routes/statsRoutes");
+const { startSlaJob } = require("./jobs/slaEscalation");
 
 connectDB();
+startSlaJob();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -25,6 +28,7 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/issues", issueRoutes);
+app.use("/api/stats", statsRoutes);
 
 // Server start
 app.listen(PORT, () => {

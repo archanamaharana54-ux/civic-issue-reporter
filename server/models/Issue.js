@@ -99,3 +99,27 @@ issueSchema.pre("validate", function () {
     if (this.reporters.length === 0 && this.reportedBy) {
       this.reporters.push(this.reportedBy);
     }
+    if (this.statusHistory.length === 0) {
+      this.statusHistory.push({
+        status: "reported",
+        note: "Issue reported",
+        changedBy: this.reportedBy,
+      });
+    }
+  }
+});
+
+// Har save par priority score aur level apne aap nikal lo
+issueSchema.pre("save", function () {
+  const { score, priority } = calculatePriority(this);
+  this.priorityScore = score;
+  this.priority = priority;
+});
+
+// Indexes
+issueSchema.index({ location: "2dsphere" });
+issueSchema.index({ status: 1, category: 1 });
+issueSchema.index({ reportedBy: 1, createdAt: -1 });
+issueSchema.index({ priorityScore: -1 });
+
+module.exports = mongoose.model("Issue", issueSchema);

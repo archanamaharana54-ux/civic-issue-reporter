@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { calculatePriority } = require("../utils/priorityScore");
 
 const statusHistorySchema = new mongoose.Schema(
   {
@@ -57,6 +58,7 @@ const issueSchema = new mongoose.Schema(
       enum: ["low", "medium", "high"],
       default: "medium",
     },
+    priorityScore: { type: Number, default: 0 },
     status: {
       type: String,
       enum: ["reported", "assigned", "in_progress", "resolved"],
@@ -97,19 +99,3 @@ issueSchema.pre("validate", function () {
     if (this.reporters.length === 0 && this.reportedBy) {
       this.reporters.push(this.reportedBy);
     }
-    if (this.statusHistory.length === 0) {
-      this.statusHistory.push({
-        status: "reported",
-        note: "Issue reported",
-        changedBy: this.reportedBy,
-      });
-    }
-  }
-});
-
-// Indexes
-issueSchema.index({ location: "2dsphere" });
-issueSchema.index({ status: 1, category: 1 });
-issueSchema.index({ reportedBy: 1, createdAt: -1 });
-
-module.exports = mongoose.model("Issue", issueSchema);

@@ -17,6 +17,8 @@ const userResponse = (user) => ({
   role: user.role,
 });
 
+const PHONE_REGEX = /^[0-9+\-\s]{7,15}$/;
+
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = async (req, res) => {
@@ -75,9 +77,100 @@ const loginUser = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
-}// @route   GET /api/auth/me
+};
+
+// @route   GET /api/auth/me
 // @access  Private
 const getMe = async (req, res) => {
   res.status(200).json({ user: userResponse(req.user) });
 };
-module.exports = { registerUser, loginUser, getMe };
+
+// @route   PATCH /api/auth/profile
+// @access  Private
+const updateProfile = async (req, res) => {
+  try {
+    const { name, phone } = req.body;
+    const updates = {};
+
+    // Whitelist: sirf name aur phone. role/email/password yahan se nahi badalte
+    if (name !== undefined) {
+      if (typeof name !== "string" || name.trim().length < 2 || name.trim().length > 50) {
+        return res
+          .status(400)
+          .json({ message: "Name must be between 2 and 50 characters" });
+      }
+      updates.name = name.trim();
+    }
+
+    if (phone !== undefined) {
+      if (typeof phone !== "string" || (phone !== "" && !PHONE_REGEX.test(phone))) {
+        return res.status(400).json({ message: "Invalid phone number" });
+      }
+      updates.phone = phone.trim();
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "Nothing to update" });
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id, updates, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.status(200).json({ user: userResponse(user) });
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: error.message });
+    }
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// @route   PATCH /api/auth/password
+// @access  Private
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (typeof currentPassword !== "string" || typeof newPassword !== "string") {
+      return res
+        .status(400)
+        .json({ message: "currentPassword and newPassword are required" });
+    }
+    if (newPassword.length < 6) {
+      return res
+        .status(400)
+        .json({ message: "New password must be at least 6 characters" });
+    }
+
+    const user = await User.findById(req.user._id).select("+password");
+
+    if (!(await user.matchPassword(currentPassword))) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+    if (await user.matchPassword(newPassword)) {
+      return res
+        .status(400)
+        .json({ message: "New password must be different from current one" });
+    }
+
+    user.password = newPassword;
+    await user.save(); // pre("save") hook bcrypt se hash kar deta hai
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: error.message });
+    }
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+  getMe,
+  updateProfile,
+  changePassword,
+};

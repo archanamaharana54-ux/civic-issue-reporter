@@ -47,6 +47,7 @@ const createIssue = async (req, res) => {
       return res.status(400).json({ message: "Invalid coordinates" });
     }
 
+    // 1. Duplicate dhoondho: 50 m ke andar, same category, unresolved
     const nearby = await Issue.findOne({
       category,
       status: { $ne: "resolved" },
@@ -59,6 +60,7 @@ const createIssue = async (req, res) => {
     });
 
     if (nearby) {
+      // 2. Ye user pehle hi report kar chuka hai
       const alreadyReported = nearby.reporters.some(
         (id) => id.toString() === req.user._id.toString()
       );
@@ -69,27 +71,27 @@ const createIssue = async (req, res) => {
         });
       }
 
-      const update = {
-        $inc: { reportCount: 1 },
-        $addToSet: { reporters: req.user._id },
-      };
-      if (nearby.reportCount + 1 >= 5) {
-        update.$set = { priority: "high" };
-      }
-
-      const merged = await Issue.findByIdAndUpdate(nearby._id, update, {
-        new: true,
-      });
+      // 3. Count atomic tarike se badhao, phir save() se hook score nikal dega
+      const merged = await Issue.findByIdAndUpdate(
+        nearby._id,
+        {
+          $inc: { reportCount: 1 },
+          $addToSet: { reporters: req.user._id },
+        },
+        { new: true }
+      );
+      await merged.save();
 
       return res.status(200).json({ merged: true, issue: merged });
     }
 
+    // 4. Duplicate nahi mila: naya issue banao (hook score khud nikal dega)
     const issue = await Issue.create({
       title,
       description,
       category,
       imageUrl,
-      location: { type: "Point", coordinates: [lng, lat] },
+      location: { type: "Point", coordinates: [lng, lat] }, // [longitude, latitude]
       address,
       ward,
       reportedBy: req.user._id,
@@ -222,7 +224,7 @@ const updateIssueStatus = async (req, res) => {
       changedBy: req.user._id,
     });
 
-    await issue.save();
+    await issue.save(); // hook se priorityScore bhi update hoga
 
     res.status(200).json({ issue });
   } catch (error) {

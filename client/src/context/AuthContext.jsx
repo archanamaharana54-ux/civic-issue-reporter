@@ -5,15 +5,15 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Token hai to loading true se shuru, warna false (effect mein setState nahi)
+  const [loading, setLoading] = useState(() =>
+    Boolean(localStorage.getItem("token"))
+  );
 
   // Page reload par token se user wapas lao
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setLoading(false);
-      return;
-    }
+    if (!localStorage.getItem("token")) return;
+
     api
       .get("/auth/me")
       .then((res) => setUser(res.data.user))

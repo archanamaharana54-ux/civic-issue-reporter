@@ -55,11 +55,16 @@ export default function Register() {
 
   return (
     <AuthLayout
-      heading={"Join Our\nCommunity"}
-      subheading="Together for a Cleaner & Greener City."
+      illustration="leaf"
+      heading="Join Our Community"
+      subheading="Together for a Cleaner & Greener City"
     >
-      <h1 className="text-3xl font-bold text-navy-900">Create Account</h1>
-      <p className="mt-1 text-slate-500">Be a part of a smarter city!</p>
+      <h1 className="text-center text-3xl font-bold text-navy-900">
+        Create Account
+      </h1>
+      <p className="mt-1 text-center text-slate-600">
+        Be a part of a smarter city!
+      </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         <FormInput
@@ -83,7 +88,7 @@ export default function Register() {
           icon={Phone}
           type="tel"
           name="phone"
-          placeholder="Phone Number (optional)"
+          placeholder="Phone Number"
           value={form.phone}
           onChange={handleChange}
         />
@@ -115,14 +120,15 @@ export default function Register() {
         <button
           type="submit"
           disabled={submitting}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-500 py-3 font-semibold text-white hover:opacity-90 disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 rounded-lg py-3 font-semibold text-white hover:opacity-90 disabled:opacity-60"
+          style={{ background: "linear-gradient(90deg, #0e8f8f, #1aa7a1)" }}
         >
           {submitting ? "Creating account..." : "Register"}
           {!submitting && <ArrowRight className="h-4 w-4" />}
         </button>
       </form>
 
-      <p className="mt-8 text-center text-sm text-slate-500">
+      <p className="mt-8 text-center text-sm text-slate-600">
         Already have an account?{" "}
         <Link to="/login" className="font-medium text-brand-500 hover:underline">
           Login
